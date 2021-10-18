@@ -1,0 +1,66 @@
+package com.example.creditclient.controller;
+
+import com.example.creditclient.dto.LoanDto;
+import com.example.creditclient.dto.LoanPostDto;
+import org.apache.tomcat.util.http.parser.Authorization;
+import org.springframework.http.*;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+@RestController
+@RequestMapping("/client")
+public class LoanClientController {
+    private static final String webUrl = "http://localhost:8080/loan";
+    private final RestTemplate restTemplate;
+
+    public LoanClientController(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+
+        List<HttpMessageConverter<?>> messageConverters = new ArrayList<>();
+        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
+        converter.setSupportedMediaTypes(Collections.singletonList(MediaType.APPLICATION_JSON));
+        messageConverters.add(converter);
+        this.restTemplate.setMessageConverters(messageConverters);
+
+    }
+//
+    @PostMapping
+    public ResponseEntity<LoanDto> addNewLoan(HttpServletRequest httpRequest, @RequestBody LoanPostDto loan){
+        System.out.println(loan.getName() + " AAAA");
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        final String token = httpRequest.getHeader("Authorization").substring(7);
+        headers.setBearerAuth(token);
+        HttpEntity<Object> request = new HttpEntity<>(loan,headers);
+        ResponseEntity<LoanDto> response = restTemplate.exchange(webUrl,HttpMethod.POST, request, LoanDto.class);
+        LoanDto responseBody = response.getBody();
+        return ResponseEntity.ok(responseBody);
+    }
+//
+    @GetMapping
+    public ResponseEntity<List<LoanDto>> getAllLoans(HttpServletRequest request) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        final String token = request.getHeader("Authorization").substring(7);
+        headers.setBearerAuth(token);
+        HttpEntity<List> entity = new HttpEntity<List>(headers);
+        ResponseEntity<List> result = restTemplate.exchange(webUrl,HttpMethod.GET,entity, List.class);
+        List<LoanDto> responseBody = result.getBody();
+        return ResponseEntity.ok(responseBody);
+
+    }
+//    private List<HttpMessageConverter<?>> getJsonMessageConverters() {
+//        List<HttpMessageConverter<?>> converters = new ArrayList<>();
+//        converters.add(new MappingJackson2HttpMessageConverter());
+//        return converters;
+//    }
+}
