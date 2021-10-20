@@ -1,9 +1,6 @@
 package com.example.creditclient.controller;
 
-import com.example.creditclient.dto.CreditDto;
-import com.example.creditclient.dto.CreditPostDto;
-import com.example.creditclient.dto.UserDto;
-import com.example.creditclient.dto.UserRegisterDto;
+import com.example.creditclient.dto.*;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -40,6 +37,13 @@ public class UserController {
         HttpEntity<UserRegisterDto> request = new HttpEntity<>(registration);
         ResponseEntity<UserDto> response = restTemplate.exchange(webUrl + "/register", HttpMethod.POST, request, UserDto.class);
         UserDto responseBody = response.getBody();
+        return ResponseEntity.ok(responseBody);
+    }
+    @PostMapping("/login")
+    public ResponseEntity<UserLoginResponseDto> authenticate(@RequestBody UserLoginDto userLoginDto){
+        HttpEntity<UserLoginDto> request = new HttpEntity<>(userLoginDto);
+        ResponseEntity<UserLoginResponseDto> response = restTemplate.exchange(webUrl + "/login", HttpMethod.POST, request, UserLoginResponseDto.class);
+        UserLoginResponseDto responseBody = response.getBody();
         return ResponseEntity.ok(responseBody);
     }
 }

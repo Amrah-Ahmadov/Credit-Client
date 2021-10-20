@@ -2,6 +2,7 @@ package com.example.creditclient.controller;
 
 import com.example.creditclient.dto.CreditDto;
 import com.example.creditclient.dto.CreditPostDto;
+import com.example.creditclient.exhandler.RestTemplateResponseErrorHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
@@ -9,6 +10,7 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -28,6 +30,7 @@ public class CreditController {
 
     public CreditController(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
+        restTemplate.setErrorHandler(new RestTemplateResponseErrorHandler());
 
         List<HttpMessageConverter<?>> messageConverters = new ArrayList<>();
         MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
@@ -67,21 +70,16 @@ public class CreditController {
         final String token = httpServletRequest.getHeader("Authorization").substring(7);
         headers.setBearerAuth(token);
         HttpEntity<Long> request = new HttpEntity<>(id, headers);
-        try{
+//        try{
             ResponseEntity<CreditDto> result = restTemplate.exchange(webUrl +"/" + id, HttpMethod.GET,request, CreditDto.class);
             CreditDto responseBody = result.getBody();
             return new ResponseEntity<>(responseBody, HttpStatus.OK);
-        } catch (RestClientException e){
-            System.out.println("AAAAAAAAAAAA   " + e.getMessage());
-            e.printStackTrace();
-            if(e instanceof HttpClientErrorException.NotFound){
-                System.out.println("BBBBBBBB");
-//                throw new CreditNotFoundException();
-            }else{
-                System.out.println("An error occurred while trying to parse Login Response JSON object");
-            }
-        }
-        return null;
+//        } catch (HttpStatusCodeException e){
+//            System.out.println("!!! status kodu " + e.getRawStatusCode() + " response headeri " + e.getResponseHeaders() + " response body " + e.getResponseBodyAsString());
+//            return ResponseEntity.status(e.getRawStatusCode()).headers(e.getResponseHeaders())
+//                    .body(e.getResponseBodyAsString());
+//        }
+//        return null;
     }
     @GetMapping
     public ResponseEntity<List<CreditDto>> getAllCredits(HttpServletRequest httpServletRequest){

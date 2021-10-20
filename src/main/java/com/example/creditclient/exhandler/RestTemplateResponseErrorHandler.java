@@ -1,19 +1,21 @@
 package com.example.creditclient.exhandler;
-
-import com.example.creditclient.exception.MyCustomException;
-import org.apache.tomcat.util.http.fileupload.IOUtils;
-import org.springframework.http.HttpStatus;
+import com.example.creditclient.exception.MyRestTemplateException;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.ResponseErrorHandler;
+import org.springframework.web.client.DefaultResponseErrorHandler;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.Arrays;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static org.springframework.http.HttpStatus.Series.CLIENT_ERROR;
 import static org.springframework.http.HttpStatus.Series.SERVER_ERROR;
 
 @Component
-public class RestTemplateResponseErrorHandler implements ResponseErrorHandler {
+public class RestTemplateResponseErrorHandler extends DefaultResponseErrorHandler {
     @Override
     public boolean hasError(ClientHttpResponse httpResponse)
             throws IOException {
@@ -24,24 +26,24 @@ public class RestTemplateResponseErrorHandler implements ResponseErrorHandler {
     }
 
     @Override
-    public void handleError(ClientHttpResponse httpResponse)
-            throws IOException {
-
-        if (httpResponse.getStatusCode()
-                .series() == HttpStatus.Series.SERVER_ERROR) {
-            System.out.println("HHHHHHHHHHHHHHHHHHH");
-            // handle SERVER_ERROR
-        } else if (httpResponse.getStatusCode()
-                .series() == HttpStatus.Series.CLIENT_ERROR) {
-            // handle CLIENT_ERROR
-            System.out.println("11111111111111111111");
-            if (httpResponse.getStatusCode() == HttpStatus.NOT_FOUND) {
-//                throw new NotFoundException();                                     ///burada
-//                throw new MyCustomException(httpResponse.getStatusCode(), httpResponse.getBody().toString(), httpResponse.getBody().toString());
-//                String body = IOUtils.toString(httpResponse.getBody());
-                System.out.println("222222222222222222222");
-                MyCustomException exception = new MyCustomException(httpResponse.getStatusCode(),httpResponse.getBody().toString(), httpResponse.getBody().toString());
-                throw exception;
+    public void handleError(ClientHttpResponse response) throws IOException {
+        if (response.getStatusCode().is4xxClientError() || response.getStatusCode().is5xxServerError()) {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(response.getBody()))) {
+                String httpBodyResponse = reader.lines().collect(Collectors.joining(","));
+                /**
+                 * Yuxaridaki httpBodyResponse bele olacaq texmini olaraq - {"message":"No such a Loan found","statusCode":"404"}
+                 */
+                Optional<String> errorMessage = Arrays.stream(httpBodyResponse.split("[,{}]"))
+                        .filter(x -> x != null && !x.isEmpty() && x.startsWith("\"message")).findFirst();
+                /**
+                 *   "errorMessage texmini bu curdur :      "message":"No such a Loan found"
+                 */
+                String message = "";    /// bu message errorMessage den message ve ":" ni legv edib tekce No such a Loan found u goturmek ucundur
+                if(errorMessage.isPresent()){
+                    message =  Arrays.stream(errorMessage.get().split("[:\"]"))
+                            .filter(x -> x != null && !x.isEmpty()).collect(Collectors.toList()).get(1);
+                }
+                throw new MyRestTemplateException(response.getStatusCode(), message);
             }
         }
     }
